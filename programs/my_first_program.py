@@ -1,5 +1,13 @@
 from nada_dsl import *
 import math
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import plotly.express as px
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
 
 def is_prime(n):
     if n <= 1:
@@ -28,45 +36,57 @@ def fibonacci(n):
         fib_seq.append(fib_seq[-1] + fib_seq[-2])
     return fib_seq[:n]
 
+def perform_linear_regression(data):
+    # Assuming 'data' is a pandas DataFrame with numeric columns
+    X = data.drop(columns=['target_column'])  # Adjust 'target_column' to your target variable
+    y = data['target_column']
+
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Initialize Linear Regression model
+    model = LinearRegression()
+
+    # Fit the model
+    model.fit(X_train, y_train)
+
+    # Make predictions
+    y_pred = model.predict(X_test)
+
+    # Evaluate model performance
+    mse = mean_squared_error(y_test, y_pred)
+
+    # Create a DataFrame with actual vs predicted values
+    results = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+
+    return mse, results
+
 def nada_main():
+    # Assuming you have some data to perform EDA and Linear Regression on
+    # Example: Load data into a pandas DataFrame for EDA
+    data = pd.read_csv('your_dataset.csv')
+
+    # Perform EDA (Exploratory Data Analysis)
+    eda_summary = data.describe()
+
+    # Visualizations using Seaborn and Plotly
+    # Seaborn pairplot for EDA
+    sns.pairplot(data)
+    plt.savefig('pairplot.png')  # Save the plot as an image file
+
+    # Perform Linear Regression and get MSE (Mean Squared Error) and results DataFrame
+    linear_regression_result, regression_results = perform_linear_regression(data)
+
+    # Plotly scatter plot for actual vs predicted values
+    fig = px.scatter(regression_results, x='Actual', y='Predicted', title='Actual vs Predicted')
+    fig.write_html('regression_results.html')  # Save the plot as an HTML file
+
+    # Now integrate these results into your NADA DSL computation
     party1 = Party(name="Party1")
     my_int1 = SecretInteger(Input(name="my_int1", party=party1))
     my_int2 = SecretInteger(Input(name="my_int2", party=party1))
 
-    # Compute basic arithmetic operations
-    sum_result = my_int1 + my_int2
-    difference_result = my_int1 - my_int2
-    abs_difference_result = abs(my_int1 - my_int2)
-    product_result = my_int1 * my_int2
-    division_result = my_int1 // my_int2 if my_int2 != 0 else "undefined"
-    modulus_result = my_int1 % my_int2 if my_int2 != 0 else "undefined"
-    exponentiation_result = my_int1 ** my_int2
-
-    # Logical comparisons
-    equality_result = my_int1 == my_int2
-    greater_than_result = my_int1 > my_int2
-    less_than_result = my_int1 < my_int2
-
-    # Statistical operations
-    mean_result = (my_int1 + my_int2) / 2
-    max_result = max(my_int1, my_int2)
-    min_result = min(my_int1, my_int2)
-
-    # Conditional logic
-    conditional_message = "my_int1 is greater" if my_int1 > my_int2 else "my_int2 is greater or equal"
-
-    # Advanced functionalities
-    prime_check1 = is_prime(my_int1)
-    prime_check2 = is_prime(my_int2)
-    gcd_result = gcd(my_int1, my_int2)
-    lcm_result = lcm(my_int1, my_int2)
-    factorial1 = factorial(my_int1)
-    factorial2 = factorial(my_int2)
-    fibonacci_sequence = fibonacci(my_int1)  # Generating Fibonacci sequence based on my_int1
-    binary_representation1 = bin(my_int1)
-    binary_representation2 = bin(my_int2)
-    hex_representation1 = hex(my_int1)
-    hex_representation2 = hex(my_int2)
+    # ... Rest of your existing computation ...
 
     return [
         Output(sum_result, "sum_output", party1),
@@ -93,5 +113,10 @@ def nada_main():
         Output(binary_representation1, "binary_representation1_output", party1),
         Output(binary_representation2, "binary_representation2_output", party1),
         Output(hex_representation1, "hex_representation1_output", party1),
-        Output(hex_representation2, "hex_representation2_output", party1)
+        Output(hex_representation2, "hex_representation2_output", party1),
+        Output(eda_summary, "eda_summary_output", party1),  # Output EDA summary
+        Output(linear_regression_result, "linear_regression_mse_output", party1)  # Output Linear Regression result
+        # Add paths to the saved visualizations
+        Output('pairplot.png', "pairplot_output", party1),
+        Output('regression_results.html', "regression_results_output", party1)
     ]
